@@ -8,9 +8,19 @@ App = React.createClass({
 
     getMeteorData() {
         Meteor.subscribe("events");
+        Meteor.subscribe("fbIdMapping");
         const events = Events.find({}).fetch();
+        let fbIdMapping = null;
+        if (Meteor.user()) {
+            const fbIdMappingList = FbIdMapping.find(
+                {fbId: Meteor.user().profile.facebookId}).fetch();
+            if (fbIdMappingList.length) {
+                fbIdMapping = fbIdMappingList[0];
+            }
+        }
         return {
             events: events,
+            fbIdMapping: fbIdMapping,
             currentUser: Meteor.user()
         }
     },
@@ -31,11 +41,30 @@ App = React.createClass({
     },
 
     sendMessage() {
-        if (!this.data.currentUser) return;
+        if (!this.data.currentUser || !this.data.fbIdMapping) return;
         Meteor.call(
             "sendMessageToUser",
-            this.data.currentUser.profile.facebookId,
+            this.data.fbIdMapping.messengerId,
             this.refs.customMessageBox.value
+        )
+    },
+
+    renderConnectMessengerButton() {
+        // Ain't this a fun little dance?
+        const fbId = this.data.currentUser.profile.facebookId;
+        if (!fbId) return; // This won't render anyway if there is no FB user
+        const buttonString = `
+            <div class="fb-send-to-messenger"
+                messenger_app_id="1594853060832247"
+                page_id="378321619004947"
+                data-ref="${fbId}"
+                color="blue"
+                size="standard">
+            </div>`;
+        return (
+            <div className="connect-to-messenger-button"
+                dangerouslySetInnerHTML={{__html: buttonString}} >
+            </div>
         )
     },
 
@@ -43,6 +72,9 @@ App = React.createClass({
         // Can't send a message to yourself if you're not logged in
         if (!this.data.currentUser) {
             return;
+        }
+        if (!this.data.fbIdMapping) {
+            return this.renderConnectMessengerButton()
         }
         return (
             <div className="custom-message">

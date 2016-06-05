@@ -3,6 +3,7 @@ import {render} from "react-dom"
 import { Meteor } from 'meteor/meteor';
 
 Events = new Mongo.Collection("events");
+FbIdMapping = new Mongo.Collection("fbIdMapping");
 
 if (Meteor.isClient) {
     // This code is executed on the client only
@@ -16,6 +17,9 @@ if (Meteor.isServer) {
         Meteor.publish("events", function() {
             return Events.find({});
         });
+        Meteor.publish("fbIdMapping", function() {
+            return FbIdMapping.find({});
+        })
     });
 
     Meteor.methods({
@@ -34,11 +38,12 @@ if (Meteor.isServer) {
           Events.remove(eventId)
        },
 
-       sendMessageToUser(fbId, message) {
+       sendMessageToUser(fbMessengerId, message) {
+           // Look up the fbMessengerId
            Meteor.http.call("POST", "http://localhost:4050/message/send", {
                data: {
                    token: process.env.CHAT_API_SECRET,
-                   id: fbId,
+                   id: fbMessengerId,
                    message: message
                }
            })
