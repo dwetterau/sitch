@@ -19,7 +19,7 @@ Accounts.onCreateUser(function(options, user) {
     // Send a welcome message
     Meteor.call(
         "sendMessageToUser",
-        user.profile.facebook.id,
+        user.profile.facebookId,
         "Welcome to Sitch!"
     );
     return user;

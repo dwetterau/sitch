@@ -52,6 +52,6 @@ app.post('/message/send', function(req, res) {
     MessageLib.sendTextMessage(fbId, message);
 });
 
-app.listen(4001, function() {
+app.listen(4050, function() {
    console.log("Server listening...");
 });
