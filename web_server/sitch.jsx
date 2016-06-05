@@ -35,7 +35,7 @@ if (Meteor.isServer) {
        },
 
        sendMessageToUser(fbId, message) {
-           Meteor.http.call("POST", "http://localhost:4001/message/send", {
+           Meteor.http.call("POST", "http://localhost:4050/message/send", {
                data: {
                    token: process.env.CHAT_API_SECRET,
                    id: fbId,

@@ -16,7 +16,7 @@ Accounts.onCreateUser(function(options, user) {
     user.profile = options.profile;
     console.log("got user profile", user.profile);
 
-    // Send a welcome message
+    // Send a welcome message. This really shouldn't be in the auth flow.
     Meteor.call(
         "sendMessageToUser",
         user.profile.facebookId,
