@@ -22,20 +22,29 @@ if (Meteor.isServer) {
         })
     });
 
+    requireLoggedIn = function() {
+        if (!Meteor.userId()) {
+            throw new Meteor.Error("not-authorized");
+        }
+    };
+    
     Meteor.methods({
        addEvent(content) {
-            // Only logged in users can create events
-            return Events.insert(content);
+           requireLoggedIn();
+           // Only logged in users can create events
+           return Events.insert(content);
         },
 
        updateEvent(eventId, event) {
-          Events.update(eventId, {
+           requireLoggedIn();
+           Events.update(eventId, {
                $set: event
            });
        },
 
        deleteEvent(eventId) {
-          Events.remove(eventId)
+           requireLoggedIn();
+           Events.remove(eventId)
        },
 
        sendMessageToUser(fbMessengerId, message) {

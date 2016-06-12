@@ -6,6 +6,12 @@ App = React.createClass({
 
     mixins: [ReactMeteorData],
 
+    getInitialState() {
+        return {
+            eventEditorOpen: false // Used for creating new events
+        }
+    },
+
     getMeteorData() {
         Meteor.subscribe("events");
         Meteor.subscribe("fbIdMapping");
@@ -30,13 +36,53 @@ App = React.createClass({
     },
 
     createEventFunc(event) {
-        return Meteor.call("addEvent", event)
+        return Meteor.call("addEvent", event, (error, response) => {
+            if (!error) {
+                this.toggleEventEditor();
+            }
+        })
+    },
+
+    cancelEventCreationFunc() {
+        this.toggleEventEditor()
+    },
+
+    toggleEventEditor() {
+        this.setState({eventEditorOpen: !this.state.eventEditorOpen});
+    },
+
+
+    renderOpenEditorButton() {
+        // Only allow users that are connected to FB and logged in to create
+        // events. We might want to relax this restriction later.
+        if (!this.data.fbIdMapping) return;
+
+        // Don't render the create menu if it is already open
+        if (this.state.eventEditorOpen) return;
+
+        // If we aren't on our own page and logged in, we can't create a new
+        // event here anyway.
+        return (
+            <div className="create-new-button"
+                 onClick={this.toggleEventEditor}>
+                <a>Create a new event</a>
+            </div>
+        )
     },
 
     renderCreateNewEvent() {
+        // Only allow users that are connected to FB and logged in to create
+        // events. We might want to relax this restriction later.
+        if (!this.data.fbIdMapping) return;
+
+        // Don't render the create menu if it isn't open
+        if (!this.state.eventEditorOpen) return;
+
         return (
-            <div className="header-container card">
-            </div>
+            <EditEvent event={getEmptyEvent()}
+                       permissionLevel={PERMISSION_LEVEL.OWNER}
+                       createFunc={this.createEventFunc}
+                       cancelFunc={this.cancelEventCreationFunc} />
         );
     },
 
@@ -77,7 +123,7 @@ App = React.createClass({
             return this.renderConnectMessengerButton()
         }
         return (
-            <div className="custom-message">
+            <div className="custom-message card">
                 <input ref="customMessageBox" type="text" />
                 <input type="button" onClick={this.sendMessage} value="Send" />
             </div>
@@ -89,6 +135,10 @@ App = React.createClass({
         return (
             <div className="page-content">
                 {this.renderSendSelfMessage()}
+                <div className="header-container card">
+                    {this.renderOpenEditorButton()}
+                    {this.renderCreateNewEvent()}
+                </div>
             </div>
         );
     },

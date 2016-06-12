@@ -1,0 +1,3 @@
+[submodule "web_server/client/components/editor/draft"]
+	path = web_server/client/components/editor/draft
+	url = git@github.com:dwetterau/draft-editor.git
