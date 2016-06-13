@@ -95,7 +95,7 @@ Event = React.createClass({
                             onTextChange={(x) => {}} />
                     </div>
                 </div>
-                {this.renderEventContent()}
+                {this.renderEventDescription()}
             </div>
         )
     },

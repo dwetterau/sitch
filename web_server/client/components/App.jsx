@@ -2,7 +2,10 @@ import React from "react"
 
 // App component - represents the whole app
 App = React.createClass({
-    propTypes: {},
+    propTypes: {
+        // The eventId to render
+        eventId: React.PropTypes.string
+    },
 
     mixins: [ReactMeteorData],
 
@@ -13,9 +16,21 @@ App = React.createClass({
     },
 
     getMeteorData() {
-        Meteor.subscribe("events");
+        let event = null;
+        if (this.props.eventId) {
+            const eventSubscriber = Meteor.subscribe(
+                "events.byId",
+                this.props.eventId
+            );
+            if (eventSubscriber.ready()) {
+                event = Events.findOne({_id: this.props.eventId});
+                if (!event) {
+                    // Event was not found, redirect to 404
+                    window.location = "/404"
+                }
+            }
+        }
         Meteor.subscribe("fbIdMapping");
-        const events = Events.find({}).fetch();
         let fbIdMapping = null;
         if (Meteor.user()) {
             const fbIdMappingList = FbIdMapping.find(
@@ -25,7 +40,7 @@ App = React.createClass({
             }
         }
         return {
-            events: events,
+            event: event,
             fbIdMapping: fbIdMapping,
             currentUser: Meteor.user()
         }
@@ -40,6 +55,7 @@ App = React.createClass({
             if (!error) {
                 this.toggleEventEditor();
             }
+            window.location = `/e/${response}`
         })
     },
 
@@ -130,6 +146,17 @@ App = React.createClass({
         )
     },
 
+    renderEvent() {
+        if (!this.data.event) return;
+        // TODO: Use real permissions! This is a gross hack
+        return (
+            <div className="event-container">
+                <Event event={this.data.event}
+                       permissionLevel={PERMISSION_LEVEL.EDITOR} />
+            </div>
+        );
+    },
+
     renderPage() {
         // This is only called if we are querying for the page of a valid user
         return (
@@ -139,6 +166,7 @@ App = React.createClass({
                     {this.renderOpenEditorButton()}
                     {this.renderCreateNewEvent()}
                 </div>
+                {this.renderEvent()}
             </div>
         );
     },

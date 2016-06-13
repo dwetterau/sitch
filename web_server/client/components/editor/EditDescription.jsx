@@ -11,9 +11,7 @@ EditDescription = React.createClass({
 
     handleDescriptionChange(newRawContent) {
         this.props.description = newRawContent;
-        this.props.updateDescription({
-            description: newRawContent
-        });
+        this.props.updateDescription(newRawContent);
     },
 
     render() {
