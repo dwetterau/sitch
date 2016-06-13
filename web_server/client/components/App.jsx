@@ -95,7 +95,7 @@ App = React.createClass({
         if (!this.state.eventEditorOpen) return;
 
         return (
-            <EditEvent event={getEmptyEvent()}
+            <EditEvent event={getEmptyEvent(this.data.currentUser._id)}
                        permissionLevel={PERMISSION_LEVEL.OWNER}
                        createFunc={this.createEventFunc}
                        cancelFunc={this.cancelEventCreationFunc} />
@@ -150,26 +150,42 @@ App = React.createClass({
     renderEvent() {
         if (!this.data.event) return;
         // TODO: Use real permissions! This is a gross hack
+        let permissionsLevel;
+        if (Meteor.user()) {
+            permissionsLevel = PERMISSION_LEVEL.EDITOR;
+        } else {
+            permissionsLevel = PERMISSION_LEVEL.VIEWER;
+        }
         return (
             <div className="event-container">
                 <Event event={this.data.event}
-                       permissionLevel={PERMISSION_LEVEL.EDITOR} />
+                       permissionLevel={permissionsLevel} />
             </div>
         );
     },
 
     renderPage() {
         // This is only called if we are querying for the page of a valid user
-        return (
-            <div className="page-content">
-                <div className="header-container card">
-                    {this.renderSendSelfMessage()}
-                    {this.renderOpenEditorButton()}
-                    {this.renderCreateNewEvent()}
+        if (this.props.eventId) {
+            // If we have a real event Id, just render that event.
+            return (
+                <div className="page-content">
+                    {this.renderEvent()}
                 </div>
-                {this.renderEvent()}
-            </div>
-        );
+            )
+        } else {
+            // Render the create event button, etc.
+            return (
+                <div className="page-content">
+                    <div className="header-container card">
+                        {this.renderSendSelfMessage()}
+                        {this.renderOpenEditorButton()}
+                        {this.renderCreateNewEvent()}
+                    </div>
+                    {this.renderEvent()}
+                </div>
+            );
+        }
     },
 
     render() {

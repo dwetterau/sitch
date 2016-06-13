@@ -2,19 +2,23 @@ var request = require("request");
 var token = process.env.CHAT_AUTH_TOKEN;
 
 function sendTextMessage(sender, text) {
-    if (!token) {
-        throw Error("No token!")
-    }
     var newMessage = {
         text: text
     };
+    return sendMessage(sender, newMessage)
+}
+    
+function sendMessage(sender, message) {    
+    if (!token) {
+        throw Error("No token!")
+    }
     request({
         url: 'https://graph.facebook.com/v2.6/me/messages',
         qs: {access_token: token},
         method: 'POST',
         json: {
             recipient: {id: sender},
-            message: newMessage
+            message: message
         }
     }, function(error, response, body) {
         if (error) {
@@ -28,5 +32,6 @@ function sendTextMessage(sender, text) {
 }
 
 module.exports = {
+    sendMessage: sendMessage,
     sendTextMessage: sendTextMessage
 };

@@ -44,6 +44,12 @@ if (Meteor.isServer) {
         });
         Meteor.publish("fbIdMapping", function() {
             return FbIdMapping.find({});
+        });
+        Meteor.publish("users.byId", function(userIdList) {
+            return Meteor.users.find({_id: {$in: userIdList}})
+        });
+        Meteor.publish("fbIdMapping.byFbIds", function(fbIds) {
+            return FbIdMapping.find({fbId: {$in: fbIds}})
         })
     });
 
@@ -75,12 +81,12 @@ if (Meteor.isServer) {
            Events.remove(eventId)
        },
 
-       sendMessageToUser(fbMessengerId, message) {
+       sendMessageToUsers(fbMessengerIds, message) {
            // Look up the fbMessengerId
            Meteor.http.call("POST", "http://localhost:4050/message/send", {
                data: {
                    token: process.env.CHAT_API_SECRET,
-                   id: fbMessengerId,
+                   ids: fbMessengerIds,
                    message: message
                }
            })

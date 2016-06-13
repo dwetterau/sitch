@@ -160,3 +160,26 @@ div.date-picker .day-suffix-text {
   height: 0;
   clear: both;
 }
+
+/* CSS for attendee renders */
+div.attendee-list-container {
+  display: flex;
+}
+
+div.attendee-container {
+  display: flex;
+  align-items: center;
+  width: 50%;
+}
+
+img.attendee-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+}
+
+div.attendee-name {
+  margin-left: 1em;
+  width: 64px;
+}
+/* End of CSS for attendee renders */

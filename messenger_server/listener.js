@@ -66,10 +66,13 @@ app.post('/message/send', function(req, res) {
         res.sendStatus(404);
         return
     }
-    var fbId = req.body.id;
+    var fbIds = req.body.ids || [];
     var message = req.body.message;
-    console.log("sending message to", fbId, message);
-    MessageLib.sendTextMessage(fbId, message);
+    fbIds.forEach(function(fbId) {
+        console.log("Sending message to:", fbId);
+        MessageLib.sendMessage(fbId, message);
+    });
+    res.sendStatus(200);
 });
 
 // Connect to the db

@@ -71,11 +71,9 @@ EditEvent = React.createClass({
         newEvent.description = this.state.event.description;
         newEvent.path = this.state.event.path;
         newEvent.public = this.state.event.public;
+        newEvent.attendees = this.state.event.attendees;
 
         this.props.createFunc(newEvent);
-
-        // Reset the editor to a blank event of the same type
-        this.setState({event: getEmptyEvent()})
     },
 
     updateEvent() {
