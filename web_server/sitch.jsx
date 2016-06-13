@@ -65,6 +65,9 @@ if (Meteor.isServer) {
            Events.update(eventId, {
                $set: event
            });
+           // Return the event for client computation
+           event._id = eventId;
+           return event
        },
 
        deleteEvent(eventId) {

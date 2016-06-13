@@ -139,7 +139,8 @@ App = React.createClass({
             return this.renderConnectMessengerButton()
         }
         return (
-            <div className="custom-message card">
+            <div className="custom-message">
+                Send yourself a message: {" "}
                 <input ref="customMessageBox" type="text" />
                 <input type="button" onClick={this.sendMessage} value="Send" />
             </div>
@@ -161,8 +162,8 @@ App = React.createClass({
         // This is only called if we are querying for the page of a valid user
         return (
             <div className="page-content">
-                {this.renderSendSelfMessage()}
                 <div className="header-container card">
+                    {this.renderSendSelfMessage()}
                     {this.renderOpenEditorButton()}
                     {this.renderCreateNewEvent()}
                 </div>
