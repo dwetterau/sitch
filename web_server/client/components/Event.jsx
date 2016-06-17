@@ -268,7 +268,8 @@ Event = React.createClass({
     },
 
     renderEventBody() {
-        const formattedDate = moment(this.state.event.startTime).format("ll");
+        const formattedDate = moment(this.state.event.startTime).format(
+            "ll @ h:mm a");
         return (
             <div className="event-body">
                 <div className="event-header">

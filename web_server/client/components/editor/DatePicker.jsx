@@ -30,6 +30,10 @@ DatePicker = React.createClass({
         return days;
     }(),
     DAY_SUFFIXES: ['st', 'nd', 'rd', 'th'],
+    HOURS: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    MINUTES: ['00', '05', '10', '15', '20', '25', '30',
+        '35', '40', '45', '50', '55'],
+    PERIODS: ['AM', 'PM'],
 
     getInitialState() {
         const m = moment(this.props.date);
@@ -56,11 +60,15 @@ DatePicker = React.createClass({
     },
 
     getSelectionWithDate() {
-        const month = parseInt(this.state.date.format("MM")) - 1;
-        const days = this.state.date.date() - 1;
-        const years = this.START_YEAR - this.state.date.year();
-
-        return [month, days, years];
+        const m = this.state.date;
+        const month = parseInt(m.format("MM")) - 1;
+        const days = m.date() - 1;
+        const years = this.START_YEAR - m.year();
+        const hour = parseInt(m.format("hh")) - 1;
+        const minute = Math.floor(m.minute() / 5);
+        const period = (m.hour() >= 12) ? 1 : 0;
+        
+        return [month, days, years, hour, minute, period];
     },
 
     handleChange(type, event) {
@@ -90,6 +98,23 @@ DatePicker = React.createClass({
                     this.state.dateSuffix = this.getDateSuffixIndex(1)
                 }
             }
+        } else if (type == "hours") {
+            const hour = (selections[5] == 0 ? 0 : 12) + (
+                this.HOURS[index] % 12);
+            this.state.date.set('hour', hour);
+        } else if (type == "minutes") {
+            this.state.date.set('minute', this.MINUTES[index]);
+        } else if (type == "periods") {
+            if (selections[5] == index) {
+                return;
+            }
+            const hour = this.state.date.hour();
+            if (index == 0) {
+                // Just switched from PM to AM, subtract 12 hours
+                this.state.date.set('hour', hour - 12)
+            } else {
+                this.state.date.set('hour', hour + 12)
+            }
         }
         this.props.callback(this.state.date.toDate())
     },
@@ -108,6 +133,17 @@ DatePicker = React.createClass({
         )
     },
 
+    renderTimePicker(selections) {
+        return (
+            <span className="time-picker">
+                {this.renderList(this.HOURS, selections[3], "hours")}
+                {":"}
+                {this.renderList(this.MINUTES, selections[4], "minutes")}
+                {this.renderList(this.PERIODS, selections[5], "periods")}
+            </span>
+        )
+    },
+
     render() {
         const selections = this.getSelectionWithDate();
         const daySuffix = this.DAY_SUFFIXES[this.state.dateSuffix];
@@ -122,6 +158,8 @@ DatePicker = React.createClass({
                 {this.renderList(days, selections[1], "day")}
                 <span className="day-suffix-text">{daySuffix}</span>
                 {this.renderList(this.YEARS, selections[2], "year")}
+                <span className="at-sign">@</span>
+                {this.renderTimePicker(selections)}
             </div>
         );
     }
