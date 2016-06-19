@@ -58,6 +58,47 @@ if (Meteor.isServer) {
             throw new Meteor.Error("not-authorized");
         }
     };
+
+    PERMISSION_LEVEL = {
+        NONE: 0,
+        VIEWER: 100,
+        EDITOR: 200,
+        OWNER: 300
+    };
+
+    getUserAccess = function(event) {
+        let access = PERMISSION_LEVEL.NONE;
+        event.attendees.forEach((attendee) => {
+            if (attendee.userId == Meteor.userId()) {
+                access = attendee.access
+            }
+        });
+        return access;
+    };
+
+    legalUpdate = function(oldEvent, newEvent) {
+        const access = getUserAccess(oldEvent);
+        if (access < PERMISSION_LEVEL.EDITOR) {
+            // The only legal update for a non-editor is to add themselves as a viewer
+            if (getUserAccess(newEvent) == PERMISSION_LEVEL.VIEWER) {
+                const withoutNewUser= JSON.parse(JSON.stringify(newEvent));
+                withoutNewUser.attendees = withoutNewUser.attendees.filter((attendee) => {
+                    return attendee.userId != Meteor.userId();
+                });
+                if (JSON.stringify(oldEvent) == JSON.stringify(withoutNewUser)) {
+                    return true
+                }
+            }
+            return false
+        }
+        if (access < PERMISSION_LEVEL.OWNER) {
+            // Non-owner editors are not allowed to modify access.
+            // This will need to change if we want to allow users to remove themselves...
+            return JSON.stringify(oldEvent.attendees) == JSON.stringify(newEvent.attendees);
+        }
+
+        return true;
+    };
     
     Meteor.methods({
        addEvent(content) {
@@ -68,6 +109,14 @@ if (Meteor.isServer) {
 
        updateEvent(eventId, event) {
            requireLoggedIn();
+
+           // Verify that the user has edit access, or owner access to modify access.
+           const currentEvent = Events.findOne({_id: eventId})
+           delete currentEvent['_id'];
+           if (!legalUpdate(currentEvent, event)) {
+               throw new Meteor.Error("not-authorized");
+           }
+
            Events.update(eventId, {
                $set: event
            });

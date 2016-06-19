@@ -180,6 +180,8 @@ img.attendee-photo {
 
 div.attendee-name {
   margin-left: 1em;
-  width: 64px;
+  width: 96px;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 /* End of CSS for attendee renders */

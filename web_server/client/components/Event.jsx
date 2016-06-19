@@ -2,6 +2,18 @@ import moment from "moment"
 import React from "react"
 import DraftJS from "draft-js"
 
+getNewAttendee = (userId, permissionLevel, status) => {
+    if (!status) {
+        status = ATTENDING_STATUS.UNKNOWN;
+    }
+    return {
+        firstJoinTime: new Date(),
+        userId: userId,
+        access: permissionLevel,
+        status: status
+    }
+};
+
 getEmptyEvent = (creator) => {
     return {
         startTime: new Date(),
@@ -10,22 +22,31 @@ getEmptyEvent = (creator) => {
             DraftJS.ContentState.createFromText("")
         ),
         public: true, // TODO: Change this default
-        attendees: [creator]
+        attendees: [getNewAttendee(
+            creator,
+            PERMISSION_LEVEL.OWNER,
+            ATTENDING_STATUS.ATTENDING
+        )]
     };
 };
 
 PERMISSION_LEVEL = {
+    NONE: 0,
     VIEWER: 100,
     EDITOR: 200,
     OWNER: 300
 };
 
+ATTENDING_STATUS = {
+    UNKNOWN: 100,
+    INVITED: 200,
+    ATTENDING: 300,
+    NOT_ATTENDING: 400
+};
+
 Event = React.createClass({
     propTypes: {
-        event: React.PropTypes.object.isRequired,
-
-        // The permission level of the user viewing this event
-        permissionLevel: React.PropTypes.number.isRequired
+        event: React.PropTypes.object.isRequired
     },
 
     mixins: [ReactMeteorData],
@@ -50,13 +71,17 @@ Event = React.createClass({
         let userIdToUser = {};
         let fbIdToMessengerId = {};
         if (this.state.event.attendees.length > 0) {
+            const userIds = this.state.event.attendees.map((attendee) => {
+                return attendee.userId;
+            });
+
             const userSubscriber = Meteor.subscribe(
                 "users.byId",
-                this.state.event.attendees
+                userIds
             );
             if (userSubscriber.ready()) {
                 const users = Meteor.users.find(
-                    {_id: {$in: this.state.event.attendees}}).fetch();
+                    {_id: {$in: userIds}}).fetch();
                 let fbIds = [];
                 users.forEach((user) => {
                     userIdToUser[user._id] = user;
@@ -115,7 +140,11 @@ Event = React.createClass({
         if (!userId) {
             throw Error("Allowed non-existent user to join...");
         }
-        this.state.event.attendees.push(userId);
+        this.state.event.attendees.push(getNewAttendee(
+            userId,
+            PERMISSION_LEVEL.VIEWER,
+            ATTENDING_STATUS.ATTENDING
+        ));
         this._localUpdate();
     },
 
@@ -153,14 +182,14 @@ Event = React.createClass({
 
         let messengerIds = [];
         let seenMap = {};
-        this.state.event.attendees.forEach((userId) => {
-            const user = this.data.userIdToUser[userId];
+        this.state.event.attendees.forEach((attendee) => {
+            const user = this.data.userIdToUser[attendee.userId];
             const fbId = user.profile.facebookId;
             if (this.data.fbIdToMessengerId.hasOwnProperty(fbId)) {
-                if (seenMap[userId]) {
+                if (seenMap[attendee.userId]) {
                     throw Error("User in attendees list twice!");
                 }
-                seenMap[userId] = true;
+                seenMap[attendee.userId] = true;
                 messengerIds.push(this.data.fbIdToMessengerId[fbId]);
             }
         });
@@ -173,8 +202,42 @@ Event = React.createClass({
         this.toggleNotifyMode();
     },
 
+    getUserAccess(userId) {
+        if (userId === undefined) {
+            userId = Meteor.userId()
+        }
+        let access = PERMISSION_LEVEL.NONE;
+        this.state.event.attendees.forEach((attendee) => {
+            if (attendee.userId == userId) {
+                access = attendee.access;
+            }
+        });
+        return access;
+    },
+
+    removeAttendee(attendee) {
+        if (this.getUserAccess() < PERMISSION_LEVEL.OWNER) {
+            throw Error("Non owner cannot change attendee access");
+        }
+        this.state.event.attendees = this.state.event.attendees.filter((curAttendee) => {
+            if (curAttendee.userId != attendee.userId) {
+                return true
+            }
+        });
+        this._localUpdate()
+    },
+
+    changeAttendeeAccess(attendee) {
+        if (this.getUserAccess() < PERMISSION_LEVEL.OWNER) {
+            throw Error("Non owner cannot change attendee access");
+        }
+        attendee.access = (attendee.access == PERMISSION_LEVEL.EDITOR) ?
+            PERMISSION_LEVEL.VIEWER: PERMISSION_LEVEL.EDITOR;
+        this._localUpdate()
+    },
+
     renderOptions() {
-        if (this.props.permissionLevel < PERMISSION_LEVEL.EDITOR) {
+        if (this.getUserAccess() < PERMISSION_LEVEL.EDITOR) {
             return;
         }
         return <EventOptions creating={false}
@@ -208,7 +271,7 @@ Event = React.createClass({
             // Still logging in, don't show anything yet
             return
         }
-        if (this.state.event.attendees.includes(Meteor.userId())) {
+        if (this.getUserAccess(Meteor.userId())) {
             // User is already in the event
             return
         }
@@ -223,7 +286,7 @@ Event = React.createClass({
 
     renderNotifyAttendeesButton() {
         if (!Meteor.user()) return;
-        if (!this.state.event.attendees.includes(Meteor.userId())) {
+        if (!this.getUserAccess(Meteor.userId())) {
             // User must join event to notify all
             return
         }
@@ -236,8 +299,37 @@ Event = React.createClass({
         )
     },
 
-    renderEventAttendee(attendeeId) {
-        let user = this.data.userIdToUser[attendeeId];
+    renderAttendeeOptions(attendee) {
+        // Can't edit attendees if not logged in, or self edit.
+        if (!Meteor.userId() || attendee.userId == Meteor.userId()) {
+            return;
+        }
+        // Only an owner can operate on attendees (but still not self).
+        if (this.getUserAccess() < PERMISSION_LEVEL.OWNER) {
+            return;
+        }
+        let accessChangeMessage;
+        if (attendee.access < PERMISSION_LEVEL.EDITOR) {
+            accessChangeMessage = "Allow to edit"
+        } else {
+            accessChangeMessage = "Remove edit access"
+        }
+        return (
+            <div className="attendee-options">
+                <div className="attendee-remove"
+                     onClick={this.removeAttendee.bind(this, attendee)}>
+                    Remove
+                </div>
+                <div className="attendee-access-changer"
+                     onClick={this.changeAttendeeAccess.bind(this, attendee)}>
+                    {accessChangeMessage}
+                </div>
+            </div>
+        )
+    },
+
+    renderEventAttendee(attendee) {
+        let user = this.data.userIdToUser[attendee.userId];
         if (!user) return;
         const profilePicUrl = `https://graph.facebook.com/
             ${user.profile.facebookId}/picture/
@@ -249,6 +341,7 @@ Event = React.createClass({
                 <div className="attendee-name">
                     {user.profile.name}
                 </div>
+                {this.renderAttendeeOptions(attendee)}
             </div>
         )
     },
@@ -299,7 +392,7 @@ Event = React.createClass({
         } else {
             return (
                 <EditEvent event={this.state.event}
-                           permissionLevel={this.props.permissionLevel}
+                           permissionLevel={this.getUserAccess()}
                            updateFunc={this.updateEvent}
                            deleteFunc={this.deleteEvent}
                            cancelFunc={this.cancelEventEdit} />

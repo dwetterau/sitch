@@ -149,17 +149,9 @@ App = React.createClass({
 
     renderEvent() {
         if (!this.data.event) return;
-        // TODO: Use real permissions! This is a gross hack
-        let permissionsLevel;
-        if (Meteor.user()) {
-            permissionsLevel = PERMISSION_LEVEL.EDITOR;
-        } else {
-            permissionsLevel = PERMISSION_LEVEL.VIEWER;
-        }
         return (
             <div className="event-container">
-                <Event event={this.data.event}
-                       permissionLevel={permissionsLevel} />
+                <Event event={this.data.event} />
             </div>
         );
     },
